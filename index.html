@@ -16,10 +16,19 @@
   <main>
     <section class="members container">
       <h2>दाजुभाइहरू</h2>
-      <ul>
-        <li>राम थापा</li>
-        <li>हरी कुमार</li>
+      <ul id="brothers-list">
       </ul>
+      <button id="admin-toggle" class="admin-toggle">एडमिन सम्पादन</button>
+    </section>
+    <section id="admin-panel" class="admin-panel container hidden">
+      <h2>एडमिन: दाजुभाइ नाम सम्पादन गर्नुहोस्</h2>
+      <p>प्रत्येक दाजुभाइको नाम नयाँ लाइनमा लेख्नुहोस्।</p>
+      <textarea id="brothers-input" rows="6" placeholder="राम थापा&#10;हरी कुमार"></textarea>
+      <div class="admin-actions">
+        <button id="save-button" class="save-button">सेभ गर्नुहोस्</button>
+        <button id="cancel-button" class="cancel-button">रद्द गर्नुहोस्</button>
+      </div>
+      <p id="admin-message" class="admin-message"></p>
     </section>
   </main>
   <footer>
@@ -27,5 +36,67 @@
       <p>© 2026 प्रदेशी दाजुभाइ समूह</p>
     </div>
   </footer>
+  <script>
+    const storageKey = 'brothersList';
+    const defaultBrothers = ['राम थापा', 'हरी कुमार'];
+    const brothersList = document.getElementById('brothers-list');
+    const adminToggle = document.getElementById('admin-toggle');
+    const adminPanel = document.getElementById('admin-panel');
+    const brothersInput = document.getElementById('brothers-input');
+    const saveButton = document.getElementById('save-button');
+    const cancelButton = document.getElementById('cancel-button');
+    const adminMessage = document.getElementById('admin-message');
+
+    function getSavedBrothers() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : defaultBrothers;
+      } catch (error) {
+        return defaultBrothers;
+      }
+    }
+
+    function renderBrothers(brothers) {
+      brothersList.innerHTML = '';
+      if (brothers.length === 0) {
+        brothersList.innerHTML = '<li>कुनै दाजुभाइ छैनन्।</li>';
+        return;
+      }
+      brothers.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        brothersList.appendChild(li);
+      });
+    }
+
+    function openAdminPanel() {
+      adminPanel.classList.remove('hidden');
+      const brothers = getSavedBrothers();
+      brothersInput.value = brothers.join('\n');
+      adminMessage.textContent = '';
+    }
+
+    function closeAdminPanel() {
+      adminPanel.classList.add('hidden');
+      adminMessage.textContent = '';
+    }
+
+    function saveBrothers() {
+      const lines = brothersInput.value.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length === 0) {
+        adminMessage.textContent = 'कम्तिमा एक दाजुभाइको नाम लेख्नुहोस्।';
+        return;
+      }
+      localStorage.setItem(storageKey, JSON.stringify(lines));
+      renderBrothers(lines);
+      adminMessage.textContent = 'नाम सेभ भयो।';
+    }
+
+    adminToggle.addEventListener('click', openAdminPanel);
+    saveButton.addEventListener('click', saveBrothers);
+    cancelButton.addEventListener('click', closeAdminPanel);
+
+    renderBrothers(getSavedBrothers());
+  </script>
 </body>
 </html>
