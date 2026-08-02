@@ -21,12 +21,21 @@
   <main>
     <section class="admin-panel container">
       <h2>दाजुभाइहरूको सूची</h2>
-      <p>यो साइटमा सबै उपकरणमा एउटै डेटा पठाउन <strong>GitHub मा सहेज्नुहोस्</strong>.</p>
-      <textarea id="brothers-input" rows="8" readonly></textarea>
-      <div class="admin-actions">
-        <a href="https://github.com/Ishor22/goupwebsite/edit/main/brothers.json" target="_blank" class="save-button">GitHub मा सम्पादन गर्नुहोस्</a>
+      <p>नामहरू सम्पादन गर्न पासवर्ड भर्नुहोस् र सेभ गर्नुहोस्। यो GitHub मा कमिट गरेर सबै मोबाइल/डेस्कटपमा समान डेटा बनाउँछ।</p>
+      <div class="form-group">
+        <label for="admin-password">एडमिन पासवर्ड</label>
+        <input id="admin-password" type="password" placeholder="Password" />
       </div>
-      <p id="admin-message" class="admin-message">Edit the shared file to keep the same data everywhere.</p>
+      <div class="form-group">
+        <label for="brothers-input">दाजुभाइहरूको नाम (प्रत्येक नयाँ लाइनमा)</label>
+        <textarea id="brothers-input" rows="8" placeholder="राम थापा&#10;हरी कुमार"></textarea>
+      </div>
+      <div class="admin-actions">
+        <button id="save-button" class="save-button">सेभ गर्नुहोस्</button>
+      </div>
+      <p id="admin-message" class="admin-message">लोड हुँदैछ...</p>
+      <p class="admin-note">यदि backend सेटअप नभएमा, GitHub बाट पनि `brothers.json` सम्पादन गर्न सक्नुहुन्छ।</p>
+      <p><a href="https://github.com/Ishor22/goupwebsite/edit/main/brothers.json" target="_blank" class="footer-link">GitHub मा `brothers.json` सम्पादन गर्नुहोस्</a></p>
     </section>
   </main>
   <footer>
@@ -37,17 +46,67 @@
   <script>
     const defaultBrothers = ['राम थापा', 'हरी कुमार'];
     const brothersInput = document.getElementById('brothers-input');
+    const passwordInput = document.getElementById('admin-password');
+    const saveButton = document.getElementById('save-button');
     const adminMessage = document.getElementById('admin-message');
 
     function renderInput(brothers) {
       brothersInput.value = brothers.join('\n');
+      adminMessage.textContent = 'नामहरू लोड भयो। पासवर्ड भरेर सेभ गर्नुहोस्।';
+      adminMessage.style.color = '#2a6f97';
+    }
+
+    function showMessage(message, isError = false) {
+      adminMessage.textContent = message;
+      adminMessage.style.color = isError ? '#b00020' : '#2a6f97';
     }
 
     fetch('brothers.json')
       .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
       .then(data => renderInput(data.brothers || defaultBrothers))
       .catch(() => renderInput(defaultBrothers));
+
+    saveButton.addEventListener('click', async () => {
+      const password = passwordInput.value.trim();
+      const brothers = brothersInput.value
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      if (!password) {
+        showMessage('कृपया पासवर्ड भर्नुहोस्।', true);
+        return;
+      }
+
+      if (brothers.length === 0) {
+        showMessage('कम्तिमा एक दाजुभाइको नाम लेख्नुहोस्।', true);
+        return;
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = 'सेभ हुँदैछ...';
+
+      try {
+        const response = await fetch('/api/updateBrothers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, brothers }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Save failed');
+        }
+
+        showMessage('सेभ सफल भयो। GitHub मा कमिट गरिएको छ।');
+      } catch (error) {
+        showMessage(error.message || 'सेभ गर्दा समस्या भयो।', true);
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = 'सेभ गर्नुहोस्';
+      }
+    });
   </script>
 </body>
 </html>
-
+>>>>>>> a692d43 (Add separate admin page and update homepage for deployment)
