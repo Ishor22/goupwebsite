@@ -60,7 +60,7 @@
     if (localBrothers) {
       renderBrothers(localBrothers);
     } else {
-      fetch('brothers.json')
+      fetch('/api/getBrothers')
         .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
         .then(data => renderBrothers(data.brothers))
         .catch(() => renderBrothers(defaultBrothers));

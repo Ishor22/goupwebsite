@@ -55,7 +55,7 @@
       adminMessage.style.color = isError ? '#b00020' : '#2a6f97';
     }
 
-    fetch('brothers.json')
+    fetch('/api/getBrothers')
       .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
       .then(data => renderInput(data.brothers || defaultBrothers))
       .catch(() => renderInput(defaultBrothers));
