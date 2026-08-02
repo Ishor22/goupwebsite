@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admins Panel - दाजुभाइ समूह</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>एडमिन प्यानल</h1>
+      <p class="subtitle">दाजुभाइ समूह नाम सम्पादन गर्नुहोस्</p>
+    </div>
+  </header>
+  <main>
+    <section class="admin-panel container">
+      <h2>दाजुभाइहरूको सूची</h2>
+      <p>प्रत्येक नाम नयाँ लाइनमा लेख्नुहोस्।</p>
+      <textarea id="brothers-input" rows="8" placeholder="राम थापा&#10;हरी कुमार"></textarea>
+      <div class="admin-actions">
+        <button id="save-button" class="save-button">सेभ गर्नुहोस्</button>
+        <button id="cancel-button" class="cancel-button">रद्द गर्नुहोस्</button>
+      </div>
+      <p id="admin-message" class="admin-message"></p>
+      <p class="admin-note">होम पेज अपडेट गर्न ब्राउजर रिफ्रेश गर्नुहोस्।</p>
+    </section>
+  </main>
+  <footer>
+    <div class="container">
+      <p><a href="index.html" class="footer-link">होममा फर्किनुहोस्</a></p>
+    </div>
+  </footer>
+  <script>
+    const storageKey = 'brothersList';
+    const defaultBrothers = ['राम थापा', 'हरी कुमार'];
+    const brothersInput = document.getElementById('brothers-input');
+    const saveButton = document.getElementById('save-button');
+    const cancelButton = document.getElementById('cancel-button');
+    const adminMessage = document.getElementById('admin-message');
+
+    function getSavedBrothers() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : defaultBrothers;
+      } catch (error) {
+        return defaultBrothers;
+      }
+    }
+
+    function renderInput() {
+      const brothers = getSavedBrothers();
+      brothersInput.value = brothers.join('\n');
+    }
+
+    function saveBrothers() {
+      const lines = brothersInput.value.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length === 0) {
+        adminMessage.textContent = 'कम्तिमा एक दाजुभाइको नाम लेख्नुहोस्।';
+        return;
+      }
+      localStorage.setItem(storageKey, JSON.stringify(lines));
+      adminMessage.textContent = 'नाम सेभ भयो। अब होम पेज रिफ्रेश गर्नुहोस्।';
+    }
+
+    function cancelEdit() {
+      renderInput();
+      adminMessage.textContent = 'सम्पादन रद्द भयो।';
+    }
+
+    saveButton.addEventListener('click', saveBrothers);
+    cancelButton.addEventListener('click', cancelEdit);
+
+    renderInput();
+  </script>
+</body>
+</html>
