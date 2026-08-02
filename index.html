@@ -31,22 +31,12 @@
     </div>
   </footer>
   <script>
-    const storageKey = 'brothersList';
     const defaultBrothers = ['राम थापा', 'हरी कुमार'];
     const brothersList = document.getElementById('brothers-list');
 
-    function getSavedBrothers() {
-      try {
-        const stored = localStorage.getItem(storageKey);
-        return stored ? JSON.parse(stored) : defaultBrothers;
-      } catch (error) {
-        return defaultBrothers;
-      }
-    }
-
     function renderBrothers(brothers) {
       brothersList.innerHTML = '';
-      if (brothers.length === 0) {
+      if (!brothers || brothers.length === 0) {
         brothersList.innerHTML = '<li>कुनै दाजुभाइ छैनन्।</li>';
         return;
       }
@@ -57,7 +47,10 @@
       });
     }
 
-    renderBrothers(getSavedBrothers());
+    fetch('brothers.json')
+      .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
+      .then(data => renderBrothers(data.brothers))
+      .catch(() => renderBrothers(defaultBrothers));
   </script>
 </body>
 </html>
