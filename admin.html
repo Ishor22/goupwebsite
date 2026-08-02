@@ -21,11 +21,7 @@
   <main>
     <section class="admin-panel container">
       <h2>दाजुभाइहरूको सूची</h2>
-      <p>नामहरू सम्पादन गर्न पासवर्ड भर्नुहोस् र सेभ गर्नुहोस्। यो GitHub मा कमिट गरेर सबै मोबाइल/डेस्कटपमा समान डेटा बनाउँछ।</p>
-      <div class="form-group">
-        <label for="admin-password">एडमिन पासवर्ड</label>
-        <input id="admin-password" type="password" placeholder="Password" />
-      </div>
+      <p>यहाँ दाजुभाइहरूको नाम सम्पादन गर्नुहोस्। यो डेटा अहिले यही ब्राउजरमा सुरक्षित हुनेछ।</p>
       <div class="form-group">
         <label for="brothers-input">दाजुभाइहरूको नाम (प्रत्येक नयाँ लाइनमा)</label>
         <textarea id="brothers-input" rows="8" placeholder="राम थापा&#10;हरी कुमार"></textarea>
@@ -34,8 +30,7 @@
         <button id="save-button" class="save-button">सेभ गर्नुहोस्</button>
       </div>
       <p id="admin-message" class="admin-message">लोड हुँदैछ...</p>
-      <p class="admin-note">यदि backend सेटअप नभएमा, GitHub बाट पनि `brothers.json` सम्पादन गर्न सक्नुहुन्छ।</p>
-      <p><a href="https://github.com/Ishor22/goupwebsite/edit/main/brothers.json" target="_blank" class="footer-link">GitHub मा `brothers.json` सम्पादन गर्नुहोस्</a></p>
+      <p class="admin-note">डेटा केवल यस ब्राउजरमा बचत हुन्छ; अर्को उपकरणमा अलग हुन सक्छ।</p>
     </section>
   </main>
   <footer>
@@ -44,15 +39,15 @@
     </div>
   </footer>
   <script>
+    const storageKey = 'brothersList';
     const defaultBrothers = ['राम थापा', 'हरी कुमार'];
     const brothersInput = document.getElementById('brothers-input');
-    const passwordInput = document.getElementById('admin-password');
     const saveButton = document.getElementById('save-button');
     const adminMessage = document.getElementById('admin-message');
 
     function renderInput(brothers) {
       brothersInput.value = brothers.join('\n');
-      adminMessage.textContent = 'नामहरू लोड भयो। पासवर्ड भरेर सेभ गर्नुहोस्।';
+      adminMessage.textContent = 'नामहरू लोड भयो। सेभ गर्नुहोस्।';
       adminMessage.style.color = '#2a6f97';
     }
 
@@ -61,50 +56,38 @@
       adminMessage.style.color = isError ? '#b00020' : '#2a6f97';
     }
 
-    fetch('brothers.json')
-      .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
-      .then(data => renderInput(data.brothers || defaultBrothers))
-      .catch(() => renderInput(defaultBrothers));
+    function getLocalBrothers() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    }
 
-    saveButton.addEventListener('click', async () => {
-      const password = passwordInput.value.trim();
+    const localBrothers = getLocalBrothers();
+    if (localBrothers) {
+      renderInput(localBrothers);
+    } else {
+      fetch('brothers.json')
+        .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
+        .then(data => renderInput(data.brothers || defaultBrothers))
+        .catch(() => renderInput(defaultBrothers));
+    }
+
+    saveButton.addEventListener('click', () => {
       const brothers = brothersInput.value
         .split('\n')
         .map(line => line.trim())
         .filter(line => line.length > 0);
-
-      if (!password) {
-        showMessage('कृपया पासवर्ड भर्नुहोस्।', true);
-        return;
-      }
 
       if (brothers.length === 0) {
         showMessage('कम्तिमा एक दाजुभाइको नाम लेख्नुहोस्।', true);
         return;
       }
 
-      saveButton.disabled = true;
-      saveButton.textContent = 'सेभ हुँदैछ...';
-
-      try {
-        const response = await fetch('/api/updateBrothers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password, brothers }),
-        });
-
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || 'Save failed');
-        }
-
-        showMessage('सेभ सफल भयो। GitHub मा कमिट गरिएको छ।');
-      } catch (error) {
-        showMessage(error.message || 'सेभ गर्दा समस्या भयो।', true);
-      } finally {
-        saveButton.disabled = false;
-        saveButton.textContent = 'सेभ गर्नुहोस्';
-      }
+      localStorage.setItem(storageKey, JSON.stringify(brothers));
+      showMessage('सेभ सफल भयो। अब यही ब्राउजरमा एउटै डेटा देखिन्छ।');
     });
   </script>
 </body>

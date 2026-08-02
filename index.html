@@ -30,6 +30,7 @@
     </div>
   </footer>
   <script>
+    const storageKey = 'brothersList';
     const defaultBrothers = ['राम थापा', 'हरी कुमार'];
     const brothersList = document.getElementById('brothers-list');
 
@@ -46,10 +47,24 @@
       });
     }
 
-    fetch('brothers.json')
-      .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
-      .then(data => renderBrothers(data.brothers))
-      .catch(() => renderBrothers(defaultBrothers));
+    function getLocalBrothers() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    const localBrothers = getLocalBrothers();
+    if (localBrothers) {
+      renderBrothers(localBrothers);
+    } else {
+      fetch('brothers.json')
+        .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
+        .then(data => renderBrothers(data.brothers))
+        .catch(() => renderBrothers(defaultBrothers));
+    }
   </script>
 </body>
 </html>
