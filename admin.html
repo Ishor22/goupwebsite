@@ -30,7 +30,7 @@
         <button id="save-button" class="save-button">सेभ गर्नुहोस्</button>
       </div>
       <p id="admin-message" class="admin-message">लोड हुँदैछ...</p>
-      <p class="admin-note">टोकन वा पासवर्ड आवश्यक छैन। यो प्यानलबाट सिधै backend मा नाम अपडेट हुन्छ।</p>
+      <p class="admin-note">टोकन वा पासवर्ड आवश्यक छैन। यो प्यानलबाट सिधै backend मा नाम अपडेट हुन्छ। नोट: यो सेभ अस्थायी हो — सर्भर पुन: सुरु वा नयाँ डिप्लोय हुँदा नामहरू पुरानो अवस्थामा फर्किन सक्छन्।</p>
     </section>
   </main>
   <footer>
@@ -86,7 +86,7 @@
           throw new Error(result.error || 'Save failed');
         }
 
-        showMessage('सेभ सफल भयो। वेबसाइट अपडेट हुन १-२ मिनेट लाग्न सक्छ, त्यसपछि पेज रिफ्रेश गर्नुहोस्।');
+        showMessage('सेभ सफल भयो। पेज रिफ्रेश गर्नुहोस्। (यो सेभ अस्थायी हो, सर्भर पुन: सुरु हुँदा हराउन सक्छ।)');
       } catch (error) {
         showMessage(error.message || 'सेभ गर्दा समस्या भयो।', true);
       } finally {
