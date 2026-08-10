@@ -21,7 +21,6 @@ export default async function HomePage() {
         <div className="container header-flex">
           <div>
             <h1>प्रदेशी दाजुभाइ समूह</h1>
-            <p className="subtitle">समूह</p>
           </div>
           <nav className="top-menu">
             <a href="/admin">Admin</a>
