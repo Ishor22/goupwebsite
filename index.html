@@ -31,8 +31,6 @@
     </div>
   </footer>
   <script>
-    const storageKey = 'brothersList';
-    const defaultBrothers = ['राम थापा', 'हरी कुमार'];
     const brothersList = document.getElementById('brothers-list');
 
     function renderBrothers(brothers) {
@@ -41,31 +39,19 @@
         brothersList.innerHTML = '<li>कुनै दाजुभाइ छैनन्।</li>';
         return;
       }
-      brothers.forEach(name => {
+      brothers.forEach(brother => {
         const li = document.createElement('li');
-        li.textContent = name;
+        li.textContent = brother.name;
         brothersList.appendChild(li);
       });
     }
 
-    function getLocalBrothers() {
-      try {
-        const stored = localStorage.getItem(storageKey);
-        return stored ? JSON.parse(stored) : null;
-      } catch {
-        return null;
-      }
-    }
-
-    const localBrothers = getLocalBrothers();
-    if (localBrothers) {
-      renderBrothers(localBrothers);
-    } else {
-      fetch('/api/getBrothers')
-        .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
-        .then(data => renderBrothers(data.brothers))
-        .catch(() => renderBrothers(defaultBrothers));
-    }
+    fetch('/api/getBrothers')
+      .then(response => response.ok ? response.json() : Promise.reject('Fetch failed'))
+      .then(data => renderBrothers(data.brothers))
+      .catch(() => {
+        brothersList.innerHTML = '<li>सूची लोड गर्न सकिएन। पछि फेरि प्रयास गर्नुहोस्।</li>';
+      });
   </script>
 </body>
 </html>
