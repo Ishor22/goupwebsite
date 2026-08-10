@@ -2,10 +2,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Vercel's Neon integration auto-provisions its own env var names rather
+// than the plain DATABASE_URL/DIRECT_URL pair Prisma's docs assume, so we
+// point at the ones it actually creates instead of asking the project
+// owner to hand-copy values into new variables.
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Brother {
