@@ -22,7 +22,7 @@ export default async function LoginPage() {
         <div className="container header-flex">
           <div>
             <h1>एडमिन लगइन</h1>
-            <p className="subtitle">Daju Bhai Group</p>
+            <p className="subtitle">समूह</p>
           </div>
           <nav className="top-menu">
             <a href="/">गृहपृष्ठ</a>
