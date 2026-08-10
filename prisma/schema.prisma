@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Brother {
+  id           String   @id @default(cuid())
+  name         String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("brothers")
+}
+
+// Only one Admin is ever expected to exist for this small site, but the
+// model isn't restricted to one so it stays simple to extend later.
+model Admin {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  sessions            Session[]
+
+  @@map("admins")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("sessions")
+}
+
+// A single-row table used purely as an atomic "has setup already run?"
+// lock: the /setup page tries to insert the row with a fixed id before
+// creating the first admin. Postgres' unique constraint on id makes this
+// safe even if two requests race each other.
+model SetupLock {
+  id Int @id
+
+  @@map("setup_lock")
+}
