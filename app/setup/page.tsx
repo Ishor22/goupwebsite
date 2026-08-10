@@ -19,7 +19,7 @@ export default async function SetupPage() {
         <div className="container header-flex">
           <div>
             <h1>पहिलो एडमिन सेटअप</h1>
-            <p className="subtitle">Daju Bhai Group</p>
+            <p className="subtitle">समूह</p>
           </div>
         </div>
       </header>
