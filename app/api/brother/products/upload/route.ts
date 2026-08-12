@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
   try {
     const url = await uploadProductImage(file, account.brotherId);
     return NextResponse.json({ url });
-  } catch {
+  } catch (error) {
+    // Logged (not just swallowed) so the real cause -- e.g. a missing
+    // BLOB_READ_WRITE_TOKEN -- is visible in Vercel's function logs
+    // instead of only ever showing a generic message to the user.
+    console.error('Product image upload failed:', error);
     return NextResponse.json({ error: 'Unable to upload image. Please try again.' }, { status: 500 });
   }
 }
