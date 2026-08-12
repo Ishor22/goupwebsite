@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Product = {
@@ -20,20 +20,83 @@ type ProductFormValues = {
   name: string;
   price: string;
   description: string;
-  imageUrl: string;
   videoUrl: string;
 };
 
-const emptyForm: ProductFormValues = { name: '', price: '', description: '', imageUrl: '', videoUrl: '' };
+const emptyForm: ProductFormValues = { name: '', price: '', description: '', videoUrl: '' };
 
 function toFormValues(product: Product): ProductFormValues {
   return {
     name: product.name,
     price: String(product.price),
     description: product.description || '',
-    imageUrl: product.imageUrl || '',
     videoUrl: product.videoUrl || '',
   };
+}
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return 'Only JPG, PNG, or WEBP image files are allowed.';
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return 'Image is too large. Please choose a file under 4 MB.';
+  }
+  return null;
+}
+
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch('/api/brother/products/upload', { method: 'POST', body: formData });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Unable to upload image. Please try again.');
+  return result.url;
+}
+
+function ProductPicture({
+  id,
+  previewUrl,
+  onChange,
+  onError,
+}: {
+  id: string;
+  previewUrl: string | null;
+  onChange: (file: File) => void;
+  onError: (message: string) => void;
+}) {
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const error = validateImageFile(file);
+    if (error) {
+      onError(error);
+      event.target.value = '';
+      return;
+    }
+
+    onChange(file);
+  }
+
+  return (
+    <div className="form-group">
+      <label htmlFor={id}>Product Picture</label>
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="product-picture-input"
+        onChange={handleFileChange}
+      />
+      {previewUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={previewUrl} alt="Product preview" className="product-picture-preview" />
+      )}
+    </div>
+  );
 }
 
 export default function Dashboard({
@@ -58,10 +121,17 @@ export default function Dashboard({
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [products, setProducts] = useState<Product[]>(initialProducts);
+
   const [newProduct, setNewProduct] = useState<ProductFormValues>(emptyForm);
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<ProductFormValues>(emptyForm);
+  const [editExistingImageUrl, setEditExistingImageUrl] = useState<string | null>(null);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   function showMessage(text: string, isError = false) {
@@ -103,6 +173,23 @@ export default function Dashboard({
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
+  function handleNewImageSelected(file: File) {
+    setNewImageFile(file);
+    setNewImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }
+
+  function resetNewProductForm() {
+    setNewProduct(emptyForm);
+    setNewImageFile(null);
+    setNewImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }
+
   async function handleAddProduct() {
     const price = parsedPrice(newProduct.price);
     if (!newProduct.name.trim() || price === null) {
@@ -112,16 +199,18 @@ export default function Dashboard({
 
     setAdding(true);
     try {
+      const imageUrl = newImageFile ? await uploadImage(newImageFile) : '';
+
       const response = await fetch('/api/brother/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newProduct, price }),
+        body: JSON.stringify({ ...newProduct, price, imageUrl }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to add product. Please try again.');
 
       setProducts((prev) => [result.product, ...prev]);
-      setNewProduct(emptyForm);
+      resetNewProductForm();
       showMessage('Product added successfully.');
     } catch (err: any) {
       showMessage(err.message || 'Unable to add product. Please try again.', true);
@@ -133,11 +222,24 @@ export default function Dashboard({
   function startEdit(product: Product) {
     setEditingId(product.id);
     setEditValues(toFormValues(product));
+    setEditExistingImageUrl(product.imageUrl);
+    setEditImageFile(null);
+    setEditImagePreview(product.imageUrl);
   }
 
   function cancelEdit() {
     setEditingId(null);
     setEditValues(emptyForm);
+    setEditImageFile(null);
+    setEditImagePreview(null);
+  }
+
+  function handleEditImageSelected(file: File) {
+    setEditImageFile(file);
+    setEditImagePreview((prev) => {
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
   }
 
   async function saveEdit(id: string) {
@@ -149,10 +251,14 @@ export default function Dashboard({
 
     setBusyId(id);
     try {
+      // If a new file was chosen, upload it and use the new URL; otherwise
+      // resubmit the same existing URL unchanged so the image is kept.
+      const imageUrl = editImageFile ? await uploadImage(editImageFile) : editExistingImageUrl || '';
+
       const response = await fetch(`/api/brother/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editValues, price }),
+        body: JSON.stringify({ ...editValues, price, imageUrl }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Unable to update product. Please try again.');
@@ -260,15 +366,12 @@ export default function Dashboard({
           onChange={(e) => setNewProduct((f) => ({ ...f, description: e.target.value }))}
         />
       </div>
-      <div className="form-group">
-        <label htmlFor="product-image">Product Image URL</label>
-        <input
-          id="product-image"
-          type="text"
-          value={newProduct.imageUrl}
-          onChange={(e) => setNewProduct((f) => ({ ...f, imageUrl: e.target.value }))}
-        />
-      </div>
+      <ProductPicture
+        id="product-image"
+        previewUrl={newImagePreview}
+        onChange={handleNewImageSelected}
+        onError={(m) => showMessage(m, true)}
+      />
       <div className="form-group">
         <label htmlFor="product-video">Product Video URL</label>
         <input
@@ -320,14 +423,12 @@ export default function Dashboard({
                     onChange={(e) => setEditValues((f) => ({ ...f, description: e.target.value }))}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Image URL</label>
-                  <input
-                    type="text"
-                    value={editValues.imageUrl}
-                    onChange={(e) => setEditValues((f) => ({ ...f, imageUrl: e.target.value }))}
-                  />
-                </div>
+                <ProductPicture
+                  id={`edit-product-image-${product.id}`}
+                  previewUrl={editImagePreview}
+                  onChange={handleEditImageSelected}
+                  onError={(m) => showMessage(m, true)}
+                />
                 <div className="form-group">
                   <label>Video URL</label>
                   <input
@@ -350,6 +451,12 @@ export default function Dashboard({
 
           return (
             <li key={product.id} className="admin-product-row">
+              {product.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.imageUrl} alt={product.name} className="admin-product-thumb" loading="lazy" />
+              ) : (
+                <div className="admin-product-thumb admin-product-thumb-placeholder" aria-hidden="true" />
+              )}
               <div className="admin-product-info">
                 <span className="admin-product-name">{product.name}</span>
                 <span className="admin-product-price">AED {product.price.toFixed(2)}</span>

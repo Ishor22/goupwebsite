@@ -6,6 +6,7 @@ type Product = {
   id: string;
   name: string;
   price: number;
+  imageUrl: string | null;
   status: 'PUBLISHED' | 'UNPUBLISHED';
   createdAt: string;
   brother: { name: string };
@@ -88,6 +89,12 @@ export default function AdminProducts({ initialProducts }: { initialProducts: Pr
           const isBusy = busyId === product.id;
           return (
             <li key={product.id} className="admin-product-row">
+              {product.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={product.imageUrl} alt={product.name} className="admin-product-thumb" loading="lazy" />
+              ) : (
+                <div className="admin-product-thumb admin-product-thumb-placeholder" aria-hidden="true" />
+              )}
               <div className="admin-product-info">
                 <span className="admin-product-name">{product.name}</span>
                 <span className="admin-product-price">AED {product.price.toFixed(2)}</span>

@@ -512,6 +512,35 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+.admin-product-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f0f0f0;
+  flex-shrink: 0;
+}
+.admin-product-thumb-placeholder {
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+}
+.product-picture-input {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+}
+.product-picture-preview {
+  display: block;
+  margin-top: 10px;
+  max-width: 220px;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ddd;
 }
 .admin-product-name {
   font-size: 1.1rem;
