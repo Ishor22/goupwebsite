@@ -151,20 +151,12 @@ export default function HomeExperience({
                 <h1>प्रदेशी दाजुभाइ समूह</h1>
               </div>
               <nav className="top-menu">
-                <a href="/admin">Admin</a>
+                <a href="/admin/login">Admin Login</a>
+                <a href="/brother/login">Brother Login</a>
               </nav>
             </div>
           </header>
           <main>
-            <section className="members container">
-              <h2>दाजुभाइहरू</h2>
-              <ol>
-                {loadError && <li>सूची लोड गर्न सकिएन। पछि फेरि प्रयास गर्नुहोस्।</li>}
-                {!loadError && brothers.length === 0 && <li>कुनै दाजुभाइ छैनन्।</li>}
-                {!loadError && brothers.map((brother) => <li key={brother.id}>{brother.name}</li>)}
-              </ol>
-            </section>
-
             {recentProducts.length > 0 && (
               <section className="members container products-section">
                 <h2>Recent Products</h2>
