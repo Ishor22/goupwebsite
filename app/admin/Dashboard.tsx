@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Brother = { id: string; name: string; displayOrder: number };
+type AccountStatus = 'none' | 'active' | 'disabled';
+type Brother = { id: string; name: string; displayOrder: number; accountStatus: AccountStatus };
 
 export default function Dashboard({
   adminName,
@@ -21,6 +22,7 @@ export default function Dashboard({
   const [editValue, setEditValue] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<{ brotherId: string; code: string } | null>(null);
 
   function showMessage(text: string, isError = false) {
     setMessage({ text, isError });
@@ -144,6 +146,45 @@ export default function Dashboard({
     }
   }
 
+  async function handleGenerateCode(id: string) {
+    setBusyId(id);
+    setGeneratedCode(null);
+    try {
+      const response = await fetch(`/api/brothers/${id}/registration-code`, { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to generate a registration code.');
+
+      setGeneratedCode({ brotherId: id, code: result.code });
+      showMessage('Registration code generated. Copy it now -- it will not be shown again.');
+    } catch (err: any) {
+      showMessage(err.message || 'Unable to generate a registration code.', true);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleToggleAccount(id: string, disable: boolean) {
+    setBusyId(id);
+    try {
+      const response = await fetch(`/api/brothers/${id}/account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disabled: disable }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to update account.');
+
+      setBrothers((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, accountStatus: disable ? 'disabled' : 'active' } : b)),
+      );
+      showMessage(disable ? 'Account disabled.' : 'Account enabled.');
+    } catch (err: any) {
+      showMessage(err.message || 'Unable to update account.', true);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <>
       <div className="dashboard-header">
@@ -213,6 +254,14 @@ export default function Dashboard({
                 <span className="admin-brother-name">{brother.name}</span>
               )}
 
+              {!isEditing && (
+                <span className={`account-status-badge account-status-${brother.accountStatus}`}>
+                  {brother.accountStatus === 'none' && 'No account'}
+                  {brother.accountStatus === 'active' && 'Account active'}
+                  {brother.accountStatus === 'disabled' && 'Account disabled'}
+                </span>
+              )}
+
               <div className="admin-brother-actions">
                 {isEditing ? (
                   <>
@@ -231,9 +280,43 @@ export default function Dashboard({
                     <button className="delete-button" onClick={() => handleDelete(brother.id)} disabled={isBusy}>
                       {isBusy ? 'Deleting...' : 'Delete'}
                     </button>
+                    {brother.accountStatus === 'none' && (
+                      <button
+                        className="save-button"
+                        onClick={() => handleGenerateCode(brother.id)}
+                        disabled={isBusy}
+                      >
+                        {isBusy ? 'Generating...' : 'Generate Registration Code'}
+                      </button>
+                    )}
+                    {brother.accountStatus === 'active' && (
+                      <button
+                        className="delete-button"
+                        onClick={() => handleToggleAccount(brother.id, true)}
+                        disabled={isBusy}
+                      >
+                        Disable Account
+                      </button>
+                    )}
+                    {brother.accountStatus === 'disabled' && (
+                      <button
+                        className="save-button"
+                        onClick={() => handleToggleAccount(brother.id, false)}
+                        disabled={isBusy}
+                      >
+                        Enable Account
+                      </button>
+                    )}
                   </>
                 )}
               </div>
+
+              {generatedCode?.brotherId === brother.id && (
+                <p className="registration-code-display">
+                  Registration code: <strong>{generatedCode.code}</strong> -- give this to {brother.name} privately.
+                  It will not be shown again.
+                </p>
+              )}
             </li>
           );
         })}

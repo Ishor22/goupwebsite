@@ -8,7 +8,9 @@ const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-function hashToken(token: string) {
+// Exported so lib/brotherAuth.ts can reuse the same opaque-token hashing
+// scheme for brother sessions instead of duplicating it.
+export function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
 

@@ -19,7 +19,84 @@ model Brother {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // A brother may have at most one linked account (enforced by the @unique
+  // on BrotherAccount.brotherId below) and may publish many products.
+  account           BrotherAccount?
+  products          Product[]
+  registrationCodes RegistrationCode[]
+
   @@map("brothers")
+}
+
+// The login identity for an existing Brother record. Kept as a separate
+// model (not merged into Brother) so a brother row can exist with no
+// account yet, and so the admin's plain Brother CRUD never has to touch
+// credentials at all.
+model BrotherAccount {
+  id                  String    @id @default(cuid())
+  brotherId           String    @unique
+  brother             Brother   @relation(fields: [brotherId], references: [id], onDelete: Cascade)
+  email               String    @unique
+  passwordHash        String
+  bio                 String?
+  photoUrl            String?
+  disabled            Boolean   @default(false)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+
+  sessions BrotherSession[]
+
+  @@map("brother_accounts")
+}
+
+model BrotherSession {
+  id               String   @id @default(cuid())
+  tokenHash        String   @unique
+  brotherAccountId String
+  brotherAccount   BrotherAccount @relation(fields: [brotherAccountId], references: [id], onDelete: Cascade)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@map("brother_sessions")
+}
+
+// One-time codes the admin generates and hands to a specific brother
+// privately (outside the website) so that person -- and only that person --
+// can register the account linked to that Brother row. Only the hash is
+// stored; the plaintext code is shown to the admin once, at generation
+// time, the same way GitHub shows a personal access token only once.
+model RegistrationCode {
+  id        String    @id @default(cuid())
+  codeHash  String    @unique
+  brotherId String
+  brother   Brother   @relation(fields: [brotherId], references: [id], onDelete: Cascade)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("registration_codes")
+}
+
+enum ProductStatus {
+  PUBLISHED
+  UNPUBLISHED
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  brotherId   String
+  brother     Brother       @relation(fields: [brotherId], references: [id], onDelete: Cascade)
+  name        String
+  price       Decimal       @db.Decimal(10, 2)
+  description String?
+  imageUrl    String?
+  videoUrl    String?
+  status      ProductStatus @default(PUBLISHED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@map("products")
 }
 
 // Only one Admin is ever expected to exist for this small site, but the

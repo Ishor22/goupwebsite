@@ -1,8 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { toYouTubeEmbedUrl } from '@/lib/video';
 
 type Brother = { id: string; name: string };
+
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+  description: string | null;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  brother: { name: string };
+};
 
 // Single source of truth for timing -- CSS keyframes only describe the
 // shape of each animation (percentages), these constants control the
@@ -17,9 +28,13 @@ type Phase = 'welcome' | 'reveal' | 'transitioning' | 'final';
 export default function HomeExperience({
   brothers,
   loadError,
+  recentProducts,
+  recentVideos,
 }: {
   brothers: Brother[];
   loadError: boolean;
+  recentProducts: Product[];
+  recentVideos: Product[];
 }) {
   const [phase, setPhase] = useState<Phase>('welcome');
   const [index, setIndex] = useState(0);
@@ -149,14 +164,91 @@ export default function HomeExperience({
                 {!loadError && brothers.map((brother) => <li key={brother.id}>{brother.name}</li>)}
               </ol>
             </section>
+
+            {recentProducts.length > 0 && (
+              <section className="members container products-section">
+                <h2>Recent Products</h2>
+                <div className="product-grid">
+                  {recentProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {recentVideos.length > 0 && (
+              <section className="members container videos-section">
+                <h2>Recent Videos</h2>
+                <div className="video-grid">
+                  {recentVideos.map((product) => (
+                    <VideoCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </section>
+            )}
           </main>
           <footer>
             <div className="container">
               <p>© 2026 प्रदेशी दाजुभाइ समूह</p>
+              {!loadError && brothers.length > 0 && (
+                <p className="footer-brothers">
+                  Our Brothers: {brothers.map((brother) => brother.name).join(', ')}
+                </p>
+              )}
             </div>
           </footer>
         </div>
       )}
     </>
+  );
+}
+
+function ProductCard({ product }: { product: Product }) {
+  return (
+    <a href={`/products/${product.id}`} className="product-card">
+      {product.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={product.imageUrl} alt={product.name} className="product-card-image" loading="lazy" />
+      ) : (
+        <div className="product-card-image product-card-image-placeholder" aria-hidden="true" />
+      )}
+      <div className="product-card-body">
+        <p className="product-card-name">{product.name}</p>
+        <p className="product-card-price">AED {product.price.toFixed(2)}</p>
+        <p className="product-card-brother">Published by: {product.brother.name}</p>
+        {product.videoUrl && <span className="product-card-video-badge">Watch Video</span>}
+      </div>
+    </a>
+  );
+}
+
+function VideoCard({ product }: { product: Product }) {
+  const embedUrl = product.videoUrl ? toYouTubeEmbedUrl(product.videoUrl) : null;
+
+  return (
+    <div className="video-card">
+      {embedUrl ? (
+        <div className="video-card-embed">
+          <iframe
+            src={embedUrl}
+            title={product.name}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : (
+        <a
+          href={product.videoUrl ?? undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="video-card-embed video-card-fallback"
+        >
+          Watch Video
+        </a>
+      )}
+      <p className="video-card-name">{product.name}</p>
+      <p className="video-card-brother">{product.brother.name}</p>
+    </div>
   );
 }
