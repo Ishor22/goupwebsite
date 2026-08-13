@@ -61,6 +61,18 @@ const optionalUrl = z
   .optional()
   .or(z.literal(''));
 
+// Product pictures are stored as a base64 data: URI (see lib/productImage.ts),
+// not a short link, so this needs far more room than a normal URL field --
+// generous enough for the 1.5MB upload limit once base64-encoded, with
+// headroom to spare.
+const productImageUrl = z
+  .string()
+  .trim()
+  .max(3_000_000)
+  .url('Enter a valid image URL')
+  .optional()
+  .or(z.literal(''));
+
 export const productSchema = z.object({
   name: z.string().trim().min(1, 'Product name is required').max(150, 'Product name is too long'),
   price: z
@@ -68,6 +80,6 @@ export const productSchema = z.object({
     .positive('Price must be greater than 0')
     .max(1000000, 'Price is too large'),
   description: z.string().trim().max(2000, 'Description is too long').optional().or(z.literal('')),
-  imageUrl: optionalUrl,
+  imageUrl: productImageUrl,
   videoUrl: optionalUrl,
 });
