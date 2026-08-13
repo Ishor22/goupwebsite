@@ -1,16 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { isUploadedImageUrl, isUploadedVideoUrl } from '@/lib/productMedia';
 
 type Product = {
   id: string;
   name: string;
   price: number;
   imageUrl: string | null;
+  videoUrl: string | null;
   status: 'PUBLISHED' | 'UNPUBLISHED';
   createdAt: string;
   brother: { name: string };
 };
+
+function mediaSourceLabel(value: string | null, isUploaded: (v: string) => boolean): string | null {
+  if (!value) return null;
+  return isUploaded(value) ? 'Uploaded' : 'URL';
+}
 
 export default function AdminProducts({ initialProducts }: { initialProducts: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -87,6 +94,8 @@ export default function AdminProducts({ initialProducts }: { initialProducts: Pr
         {filtered.length === 0 && <li>No products found.</li>}
         {filtered.map((product) => {
           const isBusy = busyId === product.id;
+          const imageSource = mediaSourceLabel(product.imageUrl, isUploadedImageUrl);
+          const videoSource = mediaSourceLabel(product.videoUrl, isUploadedVideoUrl);
           return (
             <li key={product.id} className="admin-product-row">
               {product.imageUrl ? (
@@ -101,6 +110,11 @@ export default function AdminProducts({ initialProducts }: { initialProducts: Pr
                 <span className="admin-product-brother">by {product.brother.name}</span>
                 <span className={`admin-product-status admin-product-status-${product.status.toLowerCase()}`}>
                   {product.status === 'PUBLISHED' ? 'Published' : 'Unpublished'}
+                </span>
+                <span className="admin-product-media-source">
+                  {imageSource ? `Picture: ${imageSource}` : 'No picture'}
+                  {' · '}
+                  {videoSource ? `Video: ${videoSource}` : 'No video'}
                 </span>
               </div>
               <div className="admin-brother-actions">

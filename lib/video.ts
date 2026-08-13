@@ -33,3 +33,26 @@ export function toYouTubeEmbedUrl(url: string): string | null {
 
   return null;
 }
+
+export type VideoDisplayKind = 'youtube' | 'direct' | 'link';
+
+// A video our own upload flow stored always lives on Vercel Blob and always
+// is a direct playable file; a pasted link only counts as "direct" if it
+// obviously points at a video file, so an arbitrary webpage link still
+// falls back to a plain "Watch Video" link instead of a broken <video> tag.
+const DIRECT_VIDEO_EXTENSION = /\.(mp4|webm|mov|ogg)(\?.*)?$/i;
+
+export function getVideoDisplayKind(url: string): VideoDisplayKind {
+  if (toYouTubeEmbedUrl(url)) return 'youtube';
+
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname.endsWith('.blob.vercel-storage.com') || DIRECT_VIDEO_EXTENSION.test(pathname)) {
+      return 'direct';
+    }
+  } catch {
+    // Falls through to 'link' below.
+  }
+
+  return 'link';
+}
