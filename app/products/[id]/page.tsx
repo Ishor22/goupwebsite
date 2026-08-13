@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { toYouTubeEmbedUrl } from '@/lib/video';
+import { toYouTubeEmbedUrl, getVideoDisplayKind } from '@/lib/video';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,8 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     notFound();
   }
 
-  const embedUrl = product.videoUrl ? toYouTubeEmbedUrl(product.videoUrl) : null;
+  const videoKind = product.videoUrl ? getVideoDisplayKind(product.videoUrl) : null;
+  const embedUrl = videoKind === 'youtube' && product.videoUrl ? toYouTubeEmbedUrl(product.videoUrl) : null;
 
   return (
     <>
@@ -38,7 +39,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           <p className="product-detail-price">AED {Number(product.price.toString()).toFixed(2)}</p>
           <p className="product-detail-brother">Published by: {product.brother.name}</p>
           {product.description && <p className="product-detail-description">{product.description}</p>}
-          {embedUrl ? (
+          {videoKind === 'youtube' && embedUrl && (
             <div className="product-video-embed">
               <iframe
                 src={embedUrl}
@@ -47,12 +48,17 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                 allowFullScreen
               />
             </div>
-          ) : (
-            product.videoUrl && (
-              <a href={product.videoUrl} target="_blank" rel="noopener noreferrer" className="save-button product-video-link">
-                Watch Video
-              </a>
-            )
+          )}
+          {videoKind === 'direct' && product.videoUrl && (
+            <div className="product-video-embed">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video src={product.videoUrl} controls preload="metadata" />
+            </div>
+          )}
+          {videoKind === 'link' && product.videoUrl && (
+            <a href={product.videoUrl} target="_blank" rel="noopener noreferrer" className="save-button product-video-link">
+              Watch Video
+            </a>
           )}
         </section>
       </main>

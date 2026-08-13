@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { toYouTubeEmbedUrl } from '@/lib/video';
+import { toYouTubeEmbedUrl, getVideoDisplayKind } from '@/lib/video';
 
 type Brother = { id: string; name: string };
 
@@ -215,11 +215,12 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 function VideoCard({ product }: { product: Product }) {
-  const embedUrl = product.videoUrl ? toYouTubeEmbedUrl(product.videoUrl) : null;
+  const kind = product.videoUrl ? getVideoDisplayKind(product.videoUrl) : null;
+  const embedUrl = kind === 'youtube' && product.videoUrl ? toYouTubeEmbedUrl(product.videoUrl) : null;
 
   return (
     <div className="video-card">
-      {embedUrl ? (
+      {kind === 'youtube' && embedUrl && (
         <div className="video-card-embed">
           <iframe
             src={embedUrl}
@@ -229,9 +230,16 @@ function VideoCard({ product }: { product: Product }) {
             allowFullScreen
           />
         </div>
-      ) : (
+      )}
+      {kind === 'direct' && product.videoUrl && (
+        <div className="video-card-embed">
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={product.videoUrl} controls preload="metadata" />
+        </div>
+      )}
+      {kind === 'link' && product.videoUrl && (
         <a
-          href={product.videoUrl ?? undefined}
+          href={product.videoUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="video-card-embed video-card-fallback"

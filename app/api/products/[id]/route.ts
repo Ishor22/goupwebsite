@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentAdmin } from '@/lib/auth';
 import { serializeProduct } from '@/lib/product';
+import { deleteProductVideo } from '@/lib/productVideo';
 
 // Admin-only management of ANY product (unlike /api/brother/products/[id],
 // which only lets a brother touch his own). Used for publish/unpublish and
@@ -42,6 +43,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
 
     await prisma.product.delete({ where: { id: params.id } });
+    await deleteProductVideo(existing.videoUrl);
 
     return NextResponse.json({ message: 'Deleted' });
   } catch {

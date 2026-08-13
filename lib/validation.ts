@@ -61,15 +61,44 @@ const optionalUrl = z
   .optional()
   .or(z.literal(''));
 
-// Product pictures are stored as a base64 data: URI (see lib/productImage.ts),
-// not a short link, so this needs far more room than a normal URL field --
-// generous enough for the 1.5MB upload limit once base64-encoded, with
-// headroom to spare.
-const productImageUrl = z
+// Only http/https are ever allowed for a *pasted* link -- javascript:,
+// data:, and every other scheme are rejected, since these values end up
+// in <img src>, <video src>, <iframe src>, and <a href> across the site.
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// A picture is either a plain http(s) link the brother pasted in, or a
+// data: URI our own upload endpoint produced (see lib/productImage.ts) --
+// never anything else, so a data:text/html or similar can't sneak in even
+// though the only place this value is ever used is <img src>.
+const DATA_IMAGE_URI = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+=*$/;
+
+// Generous enough for the 1.5MB picture upload limit once base64-encoded,
+// with headroom to spare -- pasted links are always far shorter than this.
+const productImageValue = z
   .string()
   .trim()
-  .max(3_000_000)
-  .url('Enter a valid image URL')
+  .max(3_000_000, 'Image is too large')
+  .refine((value) => DATA_IMAGE_URI.test(value) || isHttpUrl(value), 'Enter a valid image URL')
+  .optional()
+  .or(z.literal(''));
+
+// A video is always a plain http(s) link -- either pasted by the brother
+// (YouTube, a direct file link, etc.) or the Vercel Blob URL our own video
+// upload endpoint returned. Unlike pictures, videos are never embedded as
+// a data: URI (that would mean multi-megabyte videos in every page load),
+// so no data: exception is needed here.
+const productVideoValue = z
+  .string()
+  .trim()
+  .max(2000, 'Enter a valid video URL')
+  .refine((value) => isHttpUrl(value), 'Enter a valid http or https video URL')
   .optional()
   .or(z.literal(''));
 
@@ -80,6 +109,6 @@ export const productSchema = z.object({
     .positive('Price must be greater than 0')
     .max(1000000, 'Price is too large'),
   description: z.string().trim().max(2000, 'Description is too long').optional().or(z.literal('')),
-  imageUrl: productImageUrl,
-  videoUrl: optionalUrl,
+  imageUrl: productImageValue,
+  videoUrl: productVideoValue,
 });

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentBrotherAccount } from '@/lib/brotherAuth';
 import { productSchema } from '@/lib/validation';
 import { serializeProduct } from '@/lib/product';
+import { deleteProductVideo } from '@/lib/productVideo';
 
 // Every handler below re-fetches the product and checks
 // product.brotherId === account.brotherId on the server, regardless of
@@ -26,6 +27,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
+    const nextVideoUrl = parsed.data.videoUrl || null;
+
     const product = await prisma.product.update({
       where: { id: params.id },
       data: {
@@ -33,9 +36,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         price: parsed.data.price,
         description: parsed.data.description || null,
         imageUrl: parsed.data.imageUrl || null,
-        videoUrl: parsed.data.videoUrl || null,
+        videoUrl: nextVideoUrl,
       },
     });
+
+    // Only clean up the old video once the new value is safely saved, and
+    // only if it actually changed -- editing unrelated fields while
+    // resubmitting the same video URL must never delete that video.
+    if (existing.videoUrl && existing.videoUrl !== nextVideoUrl) {
+      await deleteProductVideo(existing.videoUrl);
+    }
 
     return NextResponse.json({ product: serializeProduct(product) });
   } catch {
@@ -56,6 +66,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
 
     await prisma.product.delete({ where: { id: params.id } });
+    await deleteProductVideo(existing.videoUrl);
 
     return NextResponse.json({ message: 'Deleted' });
   } catch {
