@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentBrotherAccount } from '@/lib/brotherAuth';
-import { uploadProductImage } from '@/lib/blob';
+import { encodeProductImage } from '@/lib/productImage';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-// Kept comfortably under Vercel's serverless function request body limit
-// (rather than the full 5MB a user might expect) so large-but-plausible
-// phone photos fail with our clear error instead of a generic platform one.
-const MAX_BYTES = 4 * 1024 * 1024;
+// Kept small because the encoded picture is stored directly in the
+// database and sent down with every page that shows it (homepage,
+// dashboards, product page) -- unlike object storage, a large image here
+// makes every one of those pages slower to load, not just the upload.
+const MAX_BYTES = 1.5 * 1024 * 1024;
 
 // Any logged-in brother can upload a file and get back a URL -- this
 // endpoint doesn't touch any Product row itself, so it doesn't need to
@@ -39,16 +40,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: 'Image is too large. Please choose a file under 4 MB.' }, { status: 400 });
+    return NextResponse.json({ error: 'Image is too large. Please choose a file under 1.5 MB.' }, { status: 400 });
   }
 
   try {
-    const url = await uploadProductImage(file, account.brotherId);
+    const url = await encodeProductImage(file);
     return NextResponse.json({ url });
   } catch (error) {
-    // Logged (not just swallowed) so the real cause -- e.g. a missing
-    // BLOB_READ_WRITE_TOKEN -- is visible in Vercel's function logs
-    // instead of only ever showing a generic message to the user.
     console.error('Product image upload failed:', error);
     return NextResponse.json({ error: 'Unable to upload image. Please try again.' }, { status: 500 });
   }

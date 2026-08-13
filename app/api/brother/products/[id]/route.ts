@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentBrotherAccount } from '@/lib/brotherAuth';
 import { productSchema } from '@/lib/validation';
 import { serializeProduct } from '@/lib/product';
-import { deleteProductImage } from '@/lib/blob';
 
 // Every handler below re-fetches the product and checks
 // product.brotherId === account.brotherId on the server, regardless of
@@ -27,25 +26,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    const nextImageUrl = parsed.data.imageUrl || null;
-
     const product = await prisma.product.update({
       where: { id: params.id },
       data: {
         name: parsed.data.name,
         price: parsed.data.price,
         description: parsed.data.description || null,
-        imageUrl: nextImageUrl,
+        imageUrl: parsed.data.imageUrl || null,
         videoUrl: parsed.data.videoUrl || null,
       },
     });
-
-    // Only clean up the old file once the new one is safely saved, and
-    // only if it actually changed -- editing unrelated fields while
-    // resubmitting the same image URL must never delete that image.
-    if (existing.imageUrl && existing.imageUrl !== nextImageUrl) {
-      await deleteProductImage(existing.imageUrl);
-    }
 
     return NextResponse.json({ product: serializeProduct(product) });
   } catch {
@@ -66,7 +56,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     }
 
     await prisma.product.delete({ where: { id: params.id } });
-    await deleteProductImage(existing.imageUrl);
 
     return NextResponse.json({ message: 'Deleted' });
   } catch {

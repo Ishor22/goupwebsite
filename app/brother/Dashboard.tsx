@@ -35,14 +35,14 @@ function toFormValues(product: Product): ProductFormValues {
 }
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
 
 function validateImageFile(file: File): string | null {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return 'Only JPG, PNG, or WEBP image files are allowed.';
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    return 'Image is too large. Please choose a file under 4 MB.';
+    return 'Image is too large. Please choose a file under 1.5 MB.';
   }
   return null;
 }
