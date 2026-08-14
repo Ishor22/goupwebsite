@@ -56,3 +56,14 @@ export function getVideoDisplayKind(url: string): VideoDisplayKind {
 
   return 'link';
 }
+
+// A plain <video> with preload="metadata" only fetches enough to know the
+// video's duration/dimensions, not an actual decoded frame, so it renders
+// as a solid black box until the visitor presses play. Appending this
+// standard media fragment (supported by Chrome, Firefox, and Safari) tells
+// the browser to seek to (and display) a frame a fraction of a second in,
+// giving every direct video a real-looking thumbnail with no separate
+// poster-image generation step.
+export function withPosterFrame(url: string): string {
+  return url.includes('#') ? url : `${url}#t=0.1`;
+}
