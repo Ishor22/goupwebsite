@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { toYouTubeEmbedUrl, getVideoDisplayKind } from '@/lib/video';
+import { toYouTubeEmbedUrl, getVideoDisplayKind, withPosterFrame } from '@/lib/video';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +52,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           {videoKind === 'direct' && product.videoUrl && (
             <div className="product-video-embed">
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={product.videoUrl} controls preload="metadata" />
+              <video src={withPosterFrame(product.videoUrl)} controls preload="metadata" />
             </div>
           )}
           {videoKind === 'link' && product.videoUrl && (

@@ -3,6 +3,7 @@
 import { useState, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { isUploadedImageUrl, isUploadedVideoUrl } from '@/lib/productMedia';
+import { withPosterFrame } from '@/lib/video';
 
 type Product = {
   id: string;
@@ -315,7 +316,7 @@ function VideoField({
 
       {field.mode === 'upload' && field.preview && (
         // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video src={field.preview} controls className="product-video-preview" />
+        <video src={withPosterFrame(field.preview)} controls className="product-video-preview" />
       )}
 
       {(field.preview || field.file || field.urlInput) && (
