@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { isUploadedImageUrl, isUploadedVideoUrl } from '@/lib/productMedia';
 import { withPosterFrame } from '@/lib/video';
@@ -125,6 +125,23 @@ function PictureField({
   onError: (message: string) => void;
 }) {
   const [urlPreviewFailed, setUrlPreviewFailed] = useState(false);
+  // Debounced so a broken-link error doesn't flash on every keystroke while
+  // the brother is still in the middle of typing or pasting a URL.
+  const [debouncedUrlPreview, setDebouncedUrlPreview] = useState(field.mode === 'url' ? field.preview : null);
+
+  useEffect(() => {
+    if (field.mode !== 'url') return;
+    setUrlPreviewFailed(false);
+    if (!field.urlInput) {
+      // Clearing (including right after a mode switch) is immediate --
+      // only setting a *new* non-empty value is debounced, so there's
+      // never a flash of a stale preview left over from before.
+      setDebouncedUrlPreview(null);
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedUrlPreview(field.urlInput), 500);
+    return () => clearTimeout(timer);
+  }, [field.mode, field.urlInput]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -142,21 +159,24 @@ function PictureField({
   }
 
   function handleUrlChange(value: string) {
-    setUrlPreviewFailed(false);
     onChange({ ...field, urlInput: value, preview: value || null, removed: false });
   }
 
   // Switching modes clears whatever the *other* mode held -- otherwise a
   // file picked earlier could silently outlive a switch to URL mode and
-  // still win at submit time, even though it's no longer visible on screen.
+  // still win at submit time (already handled by resolveMediaUrl's
+  // priority order), and -- the part that actually showed a visible bug --
+  // a leftover preview from the mode just left behind stays on screen
+  // under the newly selected mode, looking like it belongs there.
   function switchMode(mode: MediaMode) {
+    if (mode === field.mode) return;
     if (mode === 'url' && field.preview && field.preview.startsWith('blob:')) {
       URL.revokeObjectURL(field.preview);
     }
     onChange(
       mode === 'upload'
-        ? { ...field, mode, urlInput: '' }
-        : { ...field, mode, file: null, preview: field.urlInput || null },
+        ? { ...field, mode, urlInput: '', preview: field.file ? field.preview : null }
+        : { ...field, mode, file: null, preview: null },
     );
   }
 
@@ -206,16 +226,16 @@ function PictureField({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={field.preview} alt="Product preview" className="product-picture-preview" />
       )}
-      {field.mode === 'url' && field.preview && !urlPreviewFailed && (
+      {field.mode === 'url' && debouncedUrlPreview && !urlPreviewFailed && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={field.preview}
+          src={debouncedUrlPreview}
           alt="Product preview"
           className="product-picture-preview"
           onError={() => setUrlPreviewFailed(true)}
         />
       )}
-      {field.mode === 'url' && field.preview && urlPreviewFailed && (
+      {field.mode === 'url' && debouncedUrlPreview && urlPreviewFailed && (
         <p className="field-error">Couldn&apos;t load a preview for that link -- double-check the URL.</p>
       )}
 
@@ -262,14 +282,23 @@ function VideoField({
     onChange({ ...field, urlInput: value, removed: false });
   }
 
-  // Switching modes clears whatever the *other* mode held -- otherwise a
-  // file picked earlier could silently outlive a switch to URL mode and
-  // still win at submit time, even though it's no longer visible on screen.
+  // Switching modes clears whatever the *other* mode held. This matters
+  // more here than it sounds: without it, switching from an existing
+  // YouTube/link-mode video to "Upload Video" (without picking a file yet)
+  // left the old link in field.preview, and since the upload branch below
+  // renders <video src={preview}> whenever mode is "upload" and preview is
+  // set, that YouTube URL would get handed straight to <video> as if it
+  // were a direct file -- producing a broken, unplayable player.
   function switchMode(mode: MediaMode) {
+    if (mode === field.mode) return;
     if (mode === 'url' && field.preview && field.preview.startsWith('blob:')) {
       URL.revokeObjectURL(field.preview);
     }
-    onChange(mode === 'upload' ? { ...field, mode } : { ...field, mode, file: null, preview: null });
+    onChange(
+      mode === 'upload'
+        ? { ...field, mode, urlInput: '', preview: field.file ? field.preview : null }
+        : { ...field, mode, file: null, preview: null },
+    );
   }
 
   return (
