@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+// Only http/https are ever allowed for a pasted link -- javascript:, data:,
+// and every other scheme are rejected, since these values can end up in
+// <img src>, <video src>, <iframe src>, or <a href> across the site.
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export const brotherNameSchema = z
   .string()
   .trim()
@@ -48,30 +60,10 @@ export const brotherProfileSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .url('Enter a valid image URL')
+    .refine((value) => isHttpUrl(value), 'Enter a valid image URL')
     .optional()
     .or(z.literal('')),
 });
-
-const optionalUrl = z
-  .string()
-  .trim()
-  .max(500)
-  .url('Enter a valid URL')
-  .optional()
-  .or(z.literal(''));
-
-// Only http/https are ever allowed for a *pasted* link -- javascript:,
-// data:, and every other scheme are rejected, since these values end up
-// in <img src>, <video src>, <iframe src>, and <a href> across the site.
-function isHttpUrl(value: string): boolean {
-  try {
-    const protocol = new URL(value).protocol;
-    return protocol === 'http:' || protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 // A picture is either a plain http(s) link the brother pasted in, or a
 // data: URI our own upload endpoint produced (see lib/productImage.ts) --
