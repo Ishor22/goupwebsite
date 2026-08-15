@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toYouTubeEmbedUrl, getVideoDisplayKind, withPosterFrame } from '@/lib/video';
 import SiteNav from '@/components/shop/SiteNav';
+import ProductCard from '@/components/shop/ProductCard';
 
 type Brother = { id: string; name: string };
 
@@ -169,7 +170,7 @@ export default function HomeExperience({
             )}
 
             {recentVideos.length > 0 && (
-              <section className="members container videos-section">
+              <section id="videos-section" className="members container videos-section">
                 <h2>Recent Videos</h2>
                 <div className="video-grid">
                   {recentVideos.map((product) => (
@@ -195,25 +196,6 @@ export default function HomeExperience({
         </div>
       )}
     </>
-  );
-}
-
-function ProductCard({ product }: { product: Product }) {
-  return (
-    <a href={`/products/${product.id}`} className="product-card">
-      {product.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={product.imageUrl} alt={product.name} className="product-card-image" loading="lazy" />
-      ) : (
-        <div className="product-card-image product-card-image-placeholder" aria-hidden="true" />
-      )}
-      <div className="product-card-body">
-        <p className="product-card-name">{product.name}</p>
-        <p className="product-card-price">AED {product.price.toFixed(2)}</p>
-        <p className="product-card-brother">Published by: {product.brother.name}</p>
-        {product.videoUrl && <span className="product-card-video-badge">Watch Video</span>}
-      </div>
-    </a>
   );
 }
 

@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 import { getCurrentCustomer } from '@/lib/customerAuth';
 import SiteNav from '@/components/shop/SiteNav';
+import ProductCard from '@/components/shop/ProductCard';
+import { serializeProduct } from '@/lib/product';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,20 +34,7 @@ export default async function ProductsPage() {
           ) : (
             <div className="product-grid">
               {products.map((product) => (
-                <a key={product.id} href={`/products/${product.id}`} className="product-card">
-                  {product.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={product.imageUrl} alt={product.name} className="product-card-image" loading="lazy" />
-                  ) : (
-                    <div className="product-card-image product-card-image-placeholder" aria-hidden="true" />
-                  )}
-                  <div className="product-card-body">
-                    <p className="product-card-name">{product.name}</p>
-                    <p className="product-card-price">AED {Number(product.price.toString()).toFixed(2)}</p>
-                    <p className="product-card-brother">Published by: {product.brother.name}</p>
-                    {product.videoUrl && <span className="product-card-video-badge">Watch Video</span>}
-                  </div>
-                </a>
+                <ProductCard key={product.id} product={serializeProduct(product)} showAddToCart />
               ))}
             </div>
           )}
