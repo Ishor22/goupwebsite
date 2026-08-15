@@ -67,3 +67,13 @@ export function getVideoDisplayKind(url: string): VideoDisplayKind {
 export function withPosterFrame(url: string): string {
   return url.includes('#') ? url : `${url}#t=0.1`;
 }
+
+// YouTube serves a static thumbnail for every video at a predictable URL,
+// so dashboard list views can show a real preview image without loading
+// an iframe (or any video player) per row.
+export function getYouTubeThumbnailUrl(url: string): string | null {
+  const embedUrl = toYouTubeEmbedUrl(url);
+  if (!embedUrl) return null;
+  const id = embedUrl.split('/embed/')[1];
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+}
