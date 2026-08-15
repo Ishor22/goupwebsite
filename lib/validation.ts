@@ -94,6 +94,53 @@ const productVideoValue = z
   .optional()
   .or(z.literal(''));
 
+export const customerRegistrationSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+    email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+    phone: z.string().trim().min(6, 'Enter a valid phone number').max(30, 'Phone number is too long'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export const customerLoginSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const customerProfileSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  phone: z.string().trim().min(6, 'Enter a valid phone number').max(30, 'Phone number is too long'),
+  defaultAddress: z.string().trim().max(300, 'Address is too long').optional().or(z.literal('')),
+  defaultCity: z.string().trim().max(100, 'City/Area is too long').optional().or(z.literal('')),
+  defaultLandmark: z.string().trim().max(200, 'Landmark is too long').optional().or(z.literal('')),
+});
+
+const cartItemSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int('Quantity must be a whole number').min(1, 'Quantity must be at least 1').max(99, 'Quantity is too large'),
+});
+
+export const cartResolveSchema = z.object({
+  items: z.array(cartItemSchema).max(100, 'Too many items'),
+});
+
+export const checkoutSchema = z.object({
+  items: z.array(cartItemSchema).min(1, 'Your cart is empty').max(100, 'Too many items'),
+  customerName: z.string().trim().min(1, 'Full name is required').max(100, 'Name is too long'),
+  phone: z.string().trim().min(6, 'Enter a valid phone number').max(30, 'Phone number is too long'),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  deliveryAddress: z.string().trim().min(1, 'Delivery address is required').max(300, 'Address is too long'),
+  city: z.string().trim().min(1, 'City/Area is required').max(100, 'City/Area is too long'),
+  landmark: z.string().trim().max(200, 'Landmark is too long').optional().or(z.literal('')),
+  note: z.string().trim().max(500, 'Note is too long').optional().or(z.literal('')),
+});
+
 export const productSchema = z.object({
   name: z.string().trim().min(1, 'Product name is required').max(150, 'Product name is too long'),
   price: z

@@ -1,14 +1,20 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { toYouTubeEmbedUrl, getVideoDisplayKind, withPosterFrame } from '@/lib/video';
+import { getCurrentCustomer } from '@/lib/customerAuth';
+import SiteNav from '@/components/shop/SiteNav';
+import AddToCartControl from '@/components/shop/AddToCartControl';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = await prisma.product.findUnique({
-    where: { id: params.id },
-    include: { brother: { select: { name: true } } },
-  });
+  const [product, customer] = await Promise.all([
+    prisma.product.findUnique({
+      where: { id: params.id },
+      include: { brother: { select: { name: true } } },
+    }),
+    getCurrentCustomer(),
+  ]);
 
   if (!product || product.status !== 'PUBLISHED') {
     notFound();
@@ -24,9 +30,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           <div>
             <h1>प्रदेशी दाजुभाइ समूह</h1>
           </div>
-          <nav className="top-menu">
-            <a href="/">गृहपृष्ठ</a>
-          </nav>
+          <SiteNav customerName={customer?.name ?? null} />
         </div>
       </header>
       <main>
@@ -38,6 +42,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           <h2>{product.name}</h2>
           <p className="product-detail-price">AED {Number(product.price.toString()).toFixed(2)}</p>
           <p className="product-detail-brother">Published by: {product.brother.name}</p>
+          <AddToCartControl productId={product.id} />
           {product.description && <p className="product-detail-description">{product.description}</p>}
           {videoKind === 'youtube' && embedUrl && (
             <div className="product-video-embed">

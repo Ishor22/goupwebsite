@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { serializeProduct } from '@/lib/product';
+import { getCurrentCustomer } from '@/lib/customerAuth';
 import HomeExperience from './HomeExperience';
 
 export const dynamic = 'force-dynamic';
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 const RECENT_LIMIT = 6;
 
 export default async function HomePage() {
+  const customer = await getCurrentCustomer();
   let brothers: { id: string; name: string }[] = [];
   let loadError = false;
   let recentProducts: ReturnType<typeof serializeProduct>[] = [];
@@ -45,6 +47,7 @@ export default async function HomePage() {
       loadError={loadError}
       recentProducts={recentProducts}
       recentVideos={recentVideos}
+      customerName={customer?.name ?? null}
     />
   );
 }

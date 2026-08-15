@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toYouTubeEmbedUrl, getVideoDisplayKind, withPosterFrame } from '@/lib/video';
+import SiteNav from '@/components/shop/SiteNav';
 
 type Brother = { id: string; name: string };
 
@@ -30,11 +31,13 @@ export default function HomeExperience({
   loadError,
   recentProducts,
   recentVideos,
+  customerName,
 }: {
   brothers: Brother[];
   loadError: boolean;
   recentProducts: Product[];
   recentVideos: Product[];
+  customerName: string | null;
 }) {
   const [phase, setPhase] = useState<Phase>('welcome');
   const [index, setIndex] = useState(0);
@@ -150,10 +153,7 @@ export default function HomeExperience({
               <div>
                 <h1>प्रदेशी दाजुभाइ समूह</h1>
               </div>
-              <nav className="top-menu">
-                <a href="/admin/login">Admin Login</a>
-                <a href="/brother/login">Brother Login</a>
-              </nav>
+              <SiteNav customerName={customerName} />
             </div>
           </header>
           <main>
@@ -187,6 +187,9 @@ export default function HomeExperience({
                   Our Brothers: {brothers.map((brother) => brother.name).join(', ')}
                 </p>
               )}
+              <p className="footer-staff-links">
+                <a href="/admin/login">Admin Login</a> · <a href="/brother/login">Brother Login</a>
+              </p>
             </div>
           </footer>
         </div>
