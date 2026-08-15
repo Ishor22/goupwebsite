@@ -24,6 +24,7 @@ model Brother {
   account           BrotherAccount?
   products          Product[]
   registrationCodes RegistrationCode[]
+  orderItems        OrderItem[]
 
   @@map("brothers")
 }
@@ -95,8 +96,110 @@ model Product {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  orderItems OrderItem[]
+
   @@index([status, createdAt])
   @@map("products")
+}
+
+// A shopping customer -- deliberately its own model/session/cookie system,
+// entirely separate from Admin and BrotherAccount, so a customer session can
+// never be confused with (or escalated into) staff access.
+model Customer {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  phone               String?
+  passwordHash        String
+  defaultAddress      String?
+  defaultCity         String?
+  defaultLandmark     String?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+
+  sessions CustomerSession[]
+  orders   Order[]
+
+  @@map("customers")
+}
+
+model CustomerSession {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@map("customer_sessions")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status          OrderStatus   @default(PENDING)
+  paymentMethod   String        @default("COD")
+  paymentStatus   PaymentStatus @default(PENDING)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  deliveryFee     Decimal       @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  customerName    String
+  phone           String
+  email           String
+  deliveryAddress String
+  city            String
+  landmark        String?
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  items OrderItem[]
+
+  @@index([customerId, createdAt])
+  @@map("orders")
+}
+
+// Preserves purchase-time facts (name, price, seller) so a later change to
+// the live Product row -- a price update, a brother editing the name, even
+// the product being deleted -- never rewrites history on an existing order.
+model OrderItem {
+  id                    String   @id @default(cuid())
+  orderId               String
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId             String?
+  product               Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  brotherId             String
+  brother               Brother  @relation(fields: [brotherId], references: [id], onDelete: Cascade)
+  productNameSnapshot   String
+  productPriceSnapshot  Decimal  @db.Decimal(10, 2)
+  productImageSnapshot  String?
+  quantity              Int
+  lineTotal             Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([brotherId])
+  @@map("order_items")
 }
 
 // Only one Admin is ever expected to exist for this small site, but the

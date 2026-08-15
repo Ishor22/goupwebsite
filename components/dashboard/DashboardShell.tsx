@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { IconExternalLink, IconLogout, IconMenu, IconClose } from './icons';
-import { ADMIN_NAV_SECTIONS, BROTHER_NAV_SECTIONS } from './navConfig';
+import { ADMIN_NAV_SECTIONS, BROTHER_NAV_SECTIONS, CUSTOMER_NAV_SECTIONS } from './navConfig';
 
 export type NavItem = {
   href: string;
@@ -32,6 +32,18 @@ function findActiveHref(pathname: string, sections: NavSection[]): string | null
   return best;
 }
 
+const SECTIONS_BY_ROLE = {
+  admin: ADMIN_NAV_SECTIONS,
+  brother: BROTHER_NAV_SECTIONS,
+  customer: CUSTOMER_NAV_SECTIONS,
+};
+
+const LOGIN_HREF_BY_ROLE = {
+  admin: '/admin/login',
+  brother: '/brother/login',
+  customer: '/customer/login',
+};
+
 export default function DashboardShell({
   title,
   userName,
@@ -41,7 +53,7 @@ export default function DashboardShell({
 }: {
   title: string;
   userName: string;
-  role: 'admin' | 'brother';
+  role: 'admin' | 'brother' | 'customer';
   logoutHref: string;
   children: React.ReactNode;
 }) {
@@ -49,7 +61,7 @@ export default function DashboardShell({
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const sections = role === 'admin' ? ADMIN_NAV_SECTIONS : BROTHER_NAV_SECTIONS;
+  const sections = SECTIONS_BY_ROLE[role];
   const activeHref = findActiveHref(pathname, sections);
 
   // Close the slide-out menu automatically on navigation, and never leave
@@ -63,7 +75,7 @@ export default function DashboardShell({
     try {
       await fetch(logoutHref, { method: 'POST' });
     } finally {
-      router.push(logoutHref.startsWith('/api/admin') ? '/admin/login' : '/brother/login');
+      router.push(LOGIN_HREF_BY_ROLE[role]);
       router.refresh();
     }
   }
